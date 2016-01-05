@@ -71,6 +71,7 @@ import android.view.MotionEvent;
  * 
  * @author Luke Hutchison
  */
+@SuppressWarnings("unused")
 public class MultiTouchController<T> {
 
 	/**
@@ -137,7 +138,7 @@ public class MultiTouchController<T> {
 	private T selectedObject = null;
 
 	/** Current position and scale of the dragged object */
-	private PositionAndScale mCurrXform = new PositionAndScale();
+	private final PositionAndScale mCurrXform = new PositionAndScale();
 
 	/** Drag/pinch start time and time to ignore spurious events until (to smooth over event noise) */
 	private long mSettleStartTime, mSettleEndTime;
@@ -246,7 +247,6 @@ public class MultiTouchController<T> {
 	private static final int[] pointerIds = new int[MAX_TOUCH_POINTS];
 
 	/** Process incoming touch events */
-	@SuppressWarnings("unused")
 	public boolean onTouchEvent(MotionEvent event) {
 		try {
 			int pointerCount = multiTouchSupported ? (Integer) m_getPointerCount.invoke(event) : 1;
@@ -295,9 +295,9 @@ public class MultiTouchController<T> {
 				// Decode event
 				decodeTouchEvent(pointerCount, xVals, yVals, pressureVals, pointerIds, //
 						/* action = */processingHist ? MotionEvent.ACTION_MOVE : action, //
-						/* down = */processingHist ? true : action != MotionEvent.ACTION_UP //
-								&& (action & ((1 << ACTION_POINTER_INDEX_SHIFT) - 1)) != ACTION_POINTER_UP //
-								&& action != MotionEvent.ACTION_CANCEL, //
+						/* down = */processingHist ? true : mCurrPt.isMultiTouch() || (action != MotionEvent.ACTION_UP //
+							&& (action & ((1 << ACTION_POINTER_INDEX_SHIFT) - 1)) != ACTION_POINTER_UP //
+							&& action != MotionEvent.ACTION_CANCEL), //
 						processingHist ? event.getHistoricalEventTime(histIdx) : event.getEventTime());
 			}
 
@@ -486,10 +486,10 @@ public class MultiTouchController<T> {
 	public static class PointInfo {
 		// Multitouch information
 		private int numPoints;
-		private float[] xs = new float[MAX_TOUCH_POINTS];
-		private float[] ys = new float[MAX_TOUCH_POINTS];
-		private float[] pressures = new float[MAX_TOUCH_POINTS];
-		private int[] pointerIds = new int[MAX_TOUCH_POINTS];
+		private final float[] xs = new float[MAX_TOUCH_POINTS];
+		private final float[] ys = new float[MAX_TOUCH_POINTS];
+		private final float[] pressures = new float[MAX_TOUCH_POINTS];
+		private final int[] pointerIds = new int[MAX_TOUCH_POINTS];
 
 		// Midpoint of pinch operations
 		private float xMid, yMid, pressureMid;
@@ -621,7 +621,7 @@ public class MultiTouchController<T> {
 					// before we get overflow (at which point you can reduce or eliminate subpix
 					// accuracy, or use longs in julery_isqrt())
 					float diamSq = getMultiTouchDiameterSq();
-					diameter = (diamSq == 0.0f ? 0.0f : (float) julery_isqrt((int) (256 * diamSq)) / 16.0f);
+					diameter = (diamSq == 0.0f ? 0.0f : julery_isqrt((int) (256 * diamSq)) / 16.0f);
 					// Make sure diameter is never less than dx or dy, for trig purposes
 					if (diameter < dx)
 						diameter = dx;
